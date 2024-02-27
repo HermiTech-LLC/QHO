@@ -1,5 +1,6 @@
 
 # Quantum Harmonic Oscillator Visualization Tool
+![img](https://github.com/LoQiseaking69/QHO/blob/main/IMG_7503.PNG)
 
 ## Overview
 This Python application provides an interactive visualization of the quantum harmonic oscillator, a fundamental concept in quantum mechanics. It allows users to explore the quantum states of a particle in a harmonic potential, visualizing the probability densities and their time evolution.
