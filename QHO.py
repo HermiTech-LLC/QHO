@@ -1,10 +1,12 @@
 import wx
+import wx.html2
 import numpy as np
-import matplotlib.pyplot as plt
-from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigureCanvas
-from matplotlib.backends.backend_wxagg import NavigationToolbar2WxAgg as NavigationToolbar
-import matplotlib.animation as animation
 from scipy.constants import hbar, pi
+import dash
+import dash_html_components as html
+import dash_core_components as dcc
+import plotly.graph_objs as go
+from dash.dependencies import Output, Input
 
 class QuantumHarmonicOscillatorFrame(wx.Frame):
     def __init__(self, parent, title):
@@ -13,12 +15,6 @@ class QuantumHarmonicOscillatorFrame(wx.Frame):
 
     def InitUI(self):
         self.panel = wx.Panel(self)
-
-        self.fig, self.ax = plt.subplots()
-        self.canvas = FigureCanvas(self.panel, -1, self.fig)
-
-        self.toolbar = NavigationToolbar(self.canvas)
-        self.toolbar.Realize()
 
         self.comboBox = wx.ComboBox(self.panel, choices=[str(i) for i in range(10)], style=wx.CB_READONLY)
         self.comboBox.Bind(wx.EVT_COMBOBOX, self.OnSelect)
@@ -33,10 +29,21 @@ class QuantumHarmonicOscillatorFrame(wx.Frame):
         topSizer.Add(self.comboBox, 1, wx.EXPAND | wx.ALL, 5)
         topSizer.Add(self.speedSlider, 2, wx.EXPAND | wx.ALL, 5)
 
+        # Dash Application
+        self.dash_app = dash.Dash(__name__)
+        self.dash_app.layout = html.Div([
+            dcc.Graph(id='live-graph', animate=True),
+            dcc.Interval(id='graph-update', interval=1000)
+        ])
+
+        # Embedding Dash in wxPython
+        self.browser = wx.html2.WebView.New(self.panel)
+        self.server = self.dash_app.server
+        self.browser.LoadURL("http://127.0.0.1:8050/")
+
         mainSizer = wx.BoxSizer(wx.VERTICAL)
         mainSizer.Add(topSizer, 0, wx.EXPAND)
-        mainSizer.Add(self.canvas, 1, wx.EXPAND)
-        mainSizer.Add(self.toolbar, 0, wx.LEFT | wx.EXPAND)
+        mainSizer.Add(self.browser, 1, wx.EXPAND)
         mainSizer.Add(self.infoText, 0, wx.ALL, 5)
 
         self.panel.SetSizer(mainSizer)
@@ -44,54 +51,30 @@ class QuantumHarmonicOscillatorFrame(wx.Frame):
         self.Show(True)
 
         self.selected_n = 0
-        self.animate()
+        self.speed_value = 50
 
     def OnSelect(self, event):
         self.selected_n = int(event.GetString())
-        self.animate()
+        self.dash_app.callback_context.response.set_data(self.update_graph())
 
     def OnSliderScroll(self, event):
-        self.animate()
+        self.speed_value = self.speedSlider.GetValue()
+        self.dash_app.callback_context.response.set_data(self.update_graph())
 
-    def animate(self):
+    def update_graph(self):
         x = np.linspace(-5, 5, 1000)
-        self.fig.clf()
-        gs = self.fig.add_gridspec(3, 1)
-        ax1 = self.fig.add_subplot(gs[0, 0])
-        ax2 = self.fig.add_subplot(gs[1, 0])
-        ax3 = self.fig.add_subplot(gs[2, 0])
+        psi = self.psi(x, self.speed_value, n=self.selected_n)
+        psi_line = go.Scatter(x=x, y=np.abs(psi) ** 2, mode='lines', name='Probability Density')
+        real_line = go.Scatter(x=x, y=np.real(psi), mode='lines', name='Real Part')
+        imag_line = go.Scatter(x=x, y=np.imag(psi), mode='lines', name='Imaginary Part')
+        fig = go.Figure(data=[psi_line, real_line, imag_line])
+        return fig
 
-        psi_line, = ax1.plot([], [], lw=2, color='blue')
-        real_line, = ax2.plot([], [], lw=2, color='green')
-        imag_line, = ax3.plot([], [], lw=2, color='red')
-        potential_line, = ax1.plot(x, 0.5 * x ** 2, color='orange')
-
-        for ax in [ax1, ax2, ax3]:
-            ax.set_xlim(-5, 5)
-            ax.set_ylim(-1, 1)
-
-        ax1.set_title("Probability Density |ψ|^2")
-        ax2.set_title("Real Part of ψ")
-        ax3.set_title("Imaginary Part of ψ")
-
-        def init():
-            psi_line.set_data([], [])
-            real_line.set_data([], [])
-            imag_line.set_data([], [])
-            return psi_line, real_line, imag_line, potential_line
-
-        def animate(i):
-            psi = self.psi(x, i / 100 * self.speedSlider.GetValue(), n=self.selected_n)
-            psi_line.set_data(x, np.abs(psi) ** 2)
-            real_line.set_data(x, np.real(psi))
-            imag_line.set_data(x, np.imag(psi))
-            self.infoText.SetLabel(f"Quantum number n={self.selected_n}\nTime: {i / 10:.1f}")
-            return psi_line, real_line, imag_line, potential_line
-
-        if hasattr(self, 'ani'):
-            self.ani.event_source.stop()
-
-        self.ani = animation.FuncAnimation(self.fig, animate, init_func=init, frames=200, interval=50, blit=True)
+    # Callback for updating the graph
+    @self.dash_app.callback(Output('live-graph', 'figure'),
+                            [Input('graph-update', 'n_intervals')])
+    def update_graph_scatter(n):
+        return self.update_graph()
 
     @staticmethod
     def psi_n(x, n=0):
@@ -109,6 +92,8 @@ class QuantumHarmonicOscillatorFrame(wx.Frame):
     def psi(self, x, t, n=0):
         return self.psi_n(x, n) * self.time_dependent(n, t)
 
-app = wx.App()
-QuantumHarmonicOscillatorFrame(None, title='Quantum Harmonic Oscillator Visualization')
-app.MainLoop()
+if __name__ == '__main__':
+    app = wx.App()
+    frame = QuantumHarmonicOscillatorFrame(None, title='Quantum Harmonic Oscillator Visualization')
+    frame.dash_app.run_server()
+    app.MainLoop()
