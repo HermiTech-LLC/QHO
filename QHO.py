@@ -9,32 +9,26 @@ from scipy.constants import hbar, pi
 class QuantumHarmonicOscillatorFrame(wx.Frame):
     def __init__(self, parent, title):
         super(QuantumHarmonicOscillatorFrame, self).__init__(parent, title=title, size=(800, 600))
-
         self.InitUI()
 
     def InitUI(self):
         self.panel = wx.Panel(self)
 
-        # Create a matplotlib figure and canvas
         self.fig, self.ax = plt.subplots()
         self.canvas = FigureCanvas(self.panel, -1, self.fig)
 
         self.toolbar = NavigationToolbar(self.canvas)
         self.toolbar.Realize()
 
-        # Dropdown for selecting quantum states
         self.comboBox = wx.ComboBox(self.panel, choices=[str(i) for i in range(10)], style=wx.CB_READONLY)
         self.comboBox.Bind(wx.EVT_COMBOBOX, self.OnSelect)
-        self.comboBox.SetSelection(0)  # default selection
+        self.comboBox.SetSelection(0)
 
-        # Slider for animation speed
         self.speedSlider = wx.Slider(self.panel, value=50, minValue=1, maxValue=100, style=wx.SL_HORIZONTAL | wx.SL_LABELS)
         self.speedSlider.Bind(wx.EVT_SLIDER, self.OnSliderScroll)
 
-        # Text for current state and time
         self.infoText = wx.StaticText(self.panel, label="Quantum number n=0\nTime: 0.0")
 
-        # Layout with box sizers
         topSizer = wx.BoxSizer(wx.HORIZONTAL)
         topSizer.Add(self.comboBox, 1, wx.EXPAND | wx.ALL, 5)
         topSizer.Add(self.speedSlider, 2, wx.EXPAND | wx.ALL, 5)
@@ -46,7 +40,6 @@ class QuantumHarmonicOscillatorFrame(wx.Frame):
         mainSizer.Add(self.infoText, 0, wx.ALL, 5)
 
         self.panel.SetSizer(mainSizer)
-
         self.Centre()
         self.Show(True)
 
@@ -62,20 +55,38 @@ class QuantumHarmonicOscillatorFrame(wx.Frame):
 
     def animate(self):
         x = np.linspace(-5, 5, 1000)
-        psi_line, = self.ax.plot([], [], lw=2, color='blue')
-        potential_line, = self.ax.plot(x, 0.5 * x ** 2, color='orange')
-        self.ax.set_xlim(-5, 5)
-        self.ax.set_ylim(-0.1, 1)
+        self.fig.clf()
+        gs = self.fig.add_gridspec(3, 1)
+        ax1 = self.fig.add_subplot(gs[0, 0])
+        ax2 = self.fig.add_subplot(gs[1, 0])
+        ax3 = self.fig.add_subplot(gs[2, 0])
+
+        psi_line, = ax1.plot([], [], lw=2, color='blue')
+        real_line, = ax2.plot([], [], lw=2, color='green')
+        imag_line, = ax3.plot([], [], lw=2, color='red')
+        potential_line, = ax1.plot(x, 0.5 * x ** 2, color='orange')
+
+        for ax in [ax1, ax2, ax3]:
+            ax.set_xlim(-5, 5)
+            ax.set_ylim(-1, 1)
+
+        ax1.set_title("Probability Density |ψ|^2")
+        ax2.set_title("Real Part of ψ")
+        ax3.set_title("Imaginary Part of ψ")
 
         def init():
             psi_line.set_data([], [])
-            return psi_line, potential_line
+            real_line.set_data([], [])
+            imag_line.set_data([], [])
+            return psi_line, real_line, imag_line, potential_line
 
         def animate(i):
-            y = self.psi(x, i / 100 * self.speedSlider.GetValue(), n=self.selected_n)
-            psi_line.set_data(x, np.abs(y) ** 2)
+            psi = self.psi(x, i / 100 * self.speedSlider.GetValue(), n=self.selected_n)
+            psi_line.set_data(x, np.abs(psi) ** 2)
+            real_line.set_data(x, np.real(psi))
+            imag_line.set_data(x, np.imag(psi))
             self.infoText.SetLabel(f"Quantum number n={self.selected_n}\nTime: {i / 10:.1f}")
-            return psi_line, potential_line
+            return psi_line, real_line, imag_line, potential_line
 
         if hasattr(self, 'ani'):
             self.ani.event_source.stop()
