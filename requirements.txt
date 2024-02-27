@@ -1,5 +1,5 @@
-
 numpy
-matplotlib
 scipy
 wxpython
+dash
+plotly
