@@ -41,7 +41,7 @@ python QHO.py
 Contributions to enhance or expand the functionality of this tool are welcome. Please feel free to fork the repository, make changes, and submit a pull request.
 
 ## License
-Found here: [GNU affero v3](https://opensource.org/licenses/MIT).
+Found here: [GNU affero v3](https://github.com/LoQiseaking69/QHO/blob/main/LICENSE).
 
 ## Acknowledgments
 This tool was created to aid in the understanding of quantum mechanics principles, and is intended for educational purposes.
