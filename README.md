@@ -1,47 +1,49 @@
 # Quantum Harmonic Oscillator Visualization Tool
-![img](https://github.com/LoQiseaking69/QHO/blob/main/IMG_7503.PNG)
+![Quantum Harmonic Oscillator Visualization](https://github.com/LoQiseaking69/QHO/blob/main/IMG_7503.PNG)
 
 ## Overview
-This Python application provides an interactive visualization of the quantum harmonic oscillator, a fundamental concept in quantum mechanics. It allows users to explore the quantum states of a particle in a harmonic potential, visualizing the probability densities and their time evolution.
+This Python application offers a dynamic and interactive visualization of the quantum harmonic oscillator, which is a cornerstone concept in quantum mechanics. It enables users to delve into the intricate quantum states of a particle confined in a harmonic potential, providing a graphical representation of probability densities and their evolution over time.
 
 ## Features
-- **Quantum State Visualization**: Plot the probability density, real part, and imaginary part of the quantum harmonic oscillator's wavefunction.
-- **Interactive Quantum State Selection**: Choose from different quantum states (`n`) using a dropdown menu.
-- **Dynamic Time Evolution**: Observe how the quantum state evolves over time with an adjustable animation speed slider.
-- **Real-time Updates**: The plot updates in real time as parameters are changed, providing immediate visual feedback.
-- **Scientific Accuracy**: Utilizes proper scientific constants and equations for realistic simulations.
+- **Detailed Quantum State Visualization**: Graphically represent the probability density, real part, and imaginary part of the wavefunction of a quantum harmonic oscillator.
+- **Interactive Quantum State Selector**: Choose and explore various quantum states (`n`) using an intuitive dropdown menu.
+- **Dynamic Time Evolution Display**: Witness the time-dependent changes in quantum states with an adjustable speed slider, animating the wavefunction in real-time.
+- **Immediate Real-time Feedback**: As parameters like quantum number and time are adjusted, the plot updates instantly, offering immediate visual insights.
+- **Scientific Precision**: Employs accurate scientific constants and equations for realistic and educational simulations.
 
-## Requirements
+## System Requirements
+To run this tool, you'll need:
 - Python 3.x
-- wxPython
-- NumPy
-- Dash
-- Plotly
-- SciPy
+- wxPython for GUI elements
+- NumPy for numerical operations
+- Dash for web-based interactivity
+- Plotly for plotting graphs
+- SciPy for scientific computations
 
 ## Installation
-Ensure you have Python installed, then install the required packages using pip:
-```
+First, ensure Python 3.x is installed on your system. Then, install the necessary Python packages using pip:
+
+```bash
 pip install -r requirements.txt
 ```
 
 ## Running the Application
-To run the application, execute the Python script containing the code. The GUI should launch, displaying the visualization.
+Launch the application by running the Python script. This will open the GUI with the oscillator visualization:
 
 ```bash
 python QHO.py
 ```
 
-## Usage
-- **Selecting Quantum State**: Use the dropdown menu to choose a quantum number (`n`). The plot will update to show the corresponding quantum state.
-- **Adjusting Animation Speed**: Use the slider to control the speed of the time evolution animation.
-- **Viewing Probability Densities and Wavefunction Components**: The main plot area displays the probability density `|Ï(x,t)|^2`, real part, and imaginary part of the wavefunction.
+## Usage Guide
+- **Quantum State Selection**: Use the dropdown menu to select a quantum number (`n`). The visualization will update to display the wavefunction of the chosen quantum state.
+- **Animation Speed Control**: Adjust the speed of the wavefunction's time evolution using the slider.
+- **Observing Wavefunction Components**: The main plot exhibits the probability density `|ÃÂ(x,t)|^2`, along with the real and imaginary components of the wavefunction, providing a comprehensive view of the quantum state.
 
 ## Contributing
-Contributions to enhance or expand the functionality of this tool are welcome. Please feel free to fork the repository, make changes, and submit a pull request.
+Your contributions are invaluable in enhancing and expanding the capabilities of this tool. Feel free to fork the repository, make your modifications, and submit a pull request with your improvements.
 
 ## License
-Found here: [GNU affero v3](https://github.com/LoQiseaking69/QHO/blob/main/LICENSE).
+This project is under the [GNU Affero General Public License v3](https://github.com/LoQiseaking69/QHO/blob/main/LICENSE).
 
 ## Acknowledgments
-This tool was created to aid in the understanding of quantum mechanics principles and is intended for educational purposes.
+Designed as an educational resource, this tool aims to facilitate a deeper understanding of quantum mechanics principles. Its development and usage are intended primarily for educational and research purposes.
