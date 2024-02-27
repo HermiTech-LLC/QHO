@@ -3,3 +3,4 @@ scipy
 wxpython
 dash
 plotly
+waitress
