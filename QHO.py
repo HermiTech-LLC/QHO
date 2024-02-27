@@ -10,15 +10,30 @@ from dash import html, dcc
 import plotly.graph_objs as go
 from dash.dependencies import Output, Input
 from waitress import serve
+import time
 
 # Configure logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
+# Constants
+DEFAULT_QUANTUM_NUMBER = 1
+DEFAULT_TIME_VALUE = 0
+SLIDER_SCALE_FACTOR = 50
+GRAPH_UPDATE_INTERVAL_MS = 1000  # 1 second
+TIME_UPDATE_INTERVAL = 0.1  # 0.1 second
+X_RANGE = (-5, 5)
+X_POINTS = 1000
+OMEGA = 1.0  # Angular frequency
+MASS = 1.0   # Mass
+DASH_HOST = '127.0.0.1'
+DASH_PORT = 8050
+
+# Quantum Harmonic Oscillator Frame Class
 class QuantumHarmonicOscillatorFrame(wx.Frame):
     def __init__(self, parent, title):
         super().__init__(parent, title=title, size=(800, 600))
-        self.selected_n = 0
-        self.time_value = 0
+        self.selected_n = DEFAULT_QUANTUM_NUMBER
+        self.time_value = DEFAULT_TIME_VALUE
         self.init_ui()
         self.init_dash_app()
         self.start_time_update()
@@ -39,6 +54,7 @@ class QuantumHarmonicOscillatorFrame(wx.Frame):
         self.infoText = wx.StaticText(self.panel, label="Quantum number n=0\nTime: 0.0")
 
         self.browser = wx.html2.WebView.New(self.panel)
+        self.browser.LoadURL(f'http://{DASH_HOST}:{DASH_PORT}')
 
     def layout_widgets(self):
         topSizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -58,7 +74,7 @@ class QuantumHarmonicOscillatorFrame(wx.Frame):
         self.dash_app = dash.Dash(__name__)
         self.dash_app.layout = html.Div([
             dcc.Graph(id='live-graph', animate=True),
-            dcc.Interval(id='graph-update', interval=1000)  # Update every 1 second for animation
+            dcc.Interval(id='graph-update', interval=GRAPH_UPDATE_INTERVAL_MS)
         ])
         self.dash_app.callback(Output('live-graph', 'figure'), [Input('graph-update', 'n_intervals')])(self.update_graph_scatter)
 
@@ -67,26 +83,45 @@ class QuantumHarmonicOscillatorFrame(wx.Frame):
 
     def update_time(self):
         while True:
-            self.time_value += 0.05
-            time.sleep(0.1)  # Update time every 0.1 seconds for smoother animation
+            self.time_value += TIME_UPDATE_INTERVAL
+            time.sleep(TIME_UPDATE_INTERVAL)
             wx.CallAfter(self.update_graph)
 
     def on_select(self, event):
         self.selected_n = int(event.GetString())
-        wx.CallAfter(self.update_graph)  # Update graph immediately on user input
+        wx.CallAfter(self.update_graph)
 
     def on_slider_scroll(self, event):
-        self.time_value = self.speedSlider.GetValue() / 50
-        wx.CallAfter(self.update_graph)  # Update graph immediately on user input
+        self.time_value = self.speedSlider.GetValue() / SLIDER_SCALE_FACTOR
+        wx.CallAfter(self.update_graph)
 
     def update_graph(self):
         try:
-            x = np.linspace(-5, 5, 1000)
+            x = np.linspace(*X_RANGE, X_POINTS)
             psi = self.psi(x, self.time_value, n=self.selected_n)
-            psi_line = go.Scatter(x=x, y=np.abs(psi) ** 2, mode='lines', name='Probability Density')
-            real_line = go.Scatter(x=x, y=np.real(psi), mode='lines', name='Real Part')
-            imag_line = go.Scatter(x=x, y=np.imag(psi), mode='lines', name='Imaginary Part')
-            fig = go.Figure(data=[psi_line, real_line, imag_line])
+
+            prob_density = np.abs(psi) ** 2
+
+            # Diagnostic logs
+            logging.info(f"Real part sample: {np.real(psi)[:5]}")
+            logging.info(f"Imaginary part sample: {np.imag(psi)[:5]}")
+            logging.info(f"Probability Density sample: {prob_density[:5]}")
+
+            fig = go.Figure()
+            fig.add_trace(go.Scatter(x=x, y=prob_density, mode='lines', name='Probability Density'))
+            fig.add_trace(go.Scatter(x=x, y=np.real(psi), mode='lines', name='Real Part'))
+            fig.add_trace(go.Scatter(x=x, y=np.imag(psi), mode='lines', name='Imaginary Part'))
+
+            if self and hasattr(self, 'infoText'):
+                wx.CallAfter(self.infoText.SetLabel, f"Quantum number n={self.selected_n}\nTime: {self.time_value:.2f}")
+
+            fig.update_layout(
+                title="Quantum Harmonic Oscillator",
+                xaxis_title="Position",
+                yaxis_title="Value",
+                margin=dict(l=40, r=40, t=40, b=40)
+            )
+
             return fig
         except Exception as e:
             logging.error(f"Error updating graph: {e}")
@@ -97,29 +132,27 @@ class QuantumHarmonicOscillatorFrame(wx.Frame):
 
     @staticmethod
     def psi_n(x, n=0):
-        m = 1.0
-        omega = 1.0
-        coeff = (m * omega / (pi * hbar)) ** 0.25
-        hermite_n = np.polynomial.hermite.hermval(np.sqrt(m * omega / hbar) * x, [0] * n + [1])
-        return coeff / np.sqrt(2 ** n * math.factorial(n)) * hermite_n * np.exp(-m * omega * x ** 2 / (2 * hbar))
+        coeff = (MASS * OMEGA / (pi * hbar)) ** 0.25
+        hermite_n = np.polynomial.hermite.hermval(np.sqrt(MASS * OMEGA / hbar) * x, [0] * n + [1])
+        normalization = np.sqrt(2 ** n * math.factorial(n))
+        return coeff / normalization * hermite_n * np.exp(-MASS * OMEGA * x ** 2 / (2 * hbar))
 
     @staticmethod
     def time_dependent(n, t):
-        omega = 1.0
-        return np.exp(-1j * (n + 0.5) * omega * t)
+        return np.exp(-1j * (n + 0.5) * OMEGA * t)
 
     def psi(self, x, t, n=0):
         return self.psi_n(x, n) * self.time_dependent(n, t)
 
 def run_dash_app(app, frame):
     try:
-        serve(app.server, host="127.0.0.1", port=8050)
+        serve(app.server, host=DASH_HOST, port=DASH_PORT)
     except Exception as e:
         logging.error(f"Error running Dash app: {e}")
 
 if __name__ == '__main__':
     try:
-        app = wx.App()
+        app = wx.App(False)
         frame = QuantumHarmonicOscillatorFrame(None, title='Quantum Harmonic Oscillator Visualization')
         threading.Thread(target=run_dash_app, args=(frame.dash_app, frame), daemon=True).start()
         app.MainLoop()
