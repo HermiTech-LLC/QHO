@@ -28,6 +28,10 @@ pip install -r requirements.txt
 ## Running the Application
 To run the application, execute the Python script containing the code. The GUI should launch, displaying the visualization.
 
+```bash
+python QHO.py
+```
+
 ## Usage
 - **Selecting Quantum State**: Use the dropdown menu to choose a quantum number (`n`). The plot will update to show the corresponding quantum state.
 - **Adjusting Animation Speed**: Use the slider to control the speed of the time evolution animation.
