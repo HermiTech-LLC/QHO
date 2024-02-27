@@ -22,7 +22,7 @@ This Python application provides an interactive visualization of the quantum har
 ## Installation
 Ensure you have Python installed, then install the required packages using pip:
 ```
-pip install numpy matplotlib scipy wxPython
+pip install -r requirements.txt
 ```
 
 ## Running the Application
@@ -37,7 +37,7 @@ To run the application, execute the Python script containing the code. The GUI s
 Contributions to enhance or expand the functionality of this tool are welcome. Please feel free to fork the repository, make changes, and submit a pull request.
 
 ## License
-This project is open source and available under the [MIT License](https://opensource.org/licenses/MIT).
+Found here: [GNU affero v3](https://opensource.org/licenses/MIT).
 
 ## Acknowledgments
 This tool was created to aid in the understanding of quantum mechanics principles, and is intended for educational purposes.
