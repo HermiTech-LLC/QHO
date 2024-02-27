@@ -2,7 +2,6 @@ import wx
 import wx.html2
 import numpy as np
 import logging
-import math
 from scipy.constants import hbar, pi
 import dash
 from dash import html, dcc
@@ -10,6 +9,7 @@ import plotly.graph_objs as go
 from dash.dependencies import Output, Input
 from waitress import serve
 import threading
+import math
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -18,10 +18,10 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 DEFAULT_QUANTUM_NUMBER = 1
 DEFAULT_TIME_VALUE = 0
 SLIDER_SCALE_FACTOR = 50
-X_RANGE = (-5, 5)
-X_POINTS = 1000
-OMEGA = 1.0  # Angular frequency
-MASS = 1.0   # Mass
+X_RANGE = (-10, 10)  # Extended range for higher quantum numbers
+X_POINTS = 5000      # Higher number of points for precision
+OMEGA = 1.0          # Angular frequency
+MASS = 1.0           # Mass
 DASH_HOST = '127.0.0.1'
 DASH_PORT = 8050
 
@@ -97,7 +97,6 @@ class QuantumHarmonicOscillatorFrame(wx.Frame):
         )
 
         self.infoText.SetLabel(f"Quantum number n={self.selected_n}\nTime: {self.time_value:.2f}")
-        self.browser.Reload()  # This line will refresh the WebView to display the updated graph
         return fig
 
     def psi_n(self, x, n=0):
