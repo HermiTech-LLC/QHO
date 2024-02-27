@@ -4,6 +4,7 @@ import numpy as np
 import threading
 import logging
 import math
+import functools
 from scipy.constants import hbar, pi
 import dash
 from dash import html, dcc
@@ -131,6 +132,7 @@ class QuantumHarmonicOscillatorFrame(wx.Frame):
         return self.update_graph()
 
     @staticmethod
+    @functools.lru_cache(maxsize=None)  # Cache results indefinitely
     def psi_n(x, n=0):
         coeff = (MASS * OMEGA / (pi * hbar)) ** 0.25
         hermite_n = np.polynomial.hermite.hermval(np.sqrt(MASS * OMEGA / hbar) * x, [0] * n + [1])
