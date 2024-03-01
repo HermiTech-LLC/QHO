@@ -11,6 +11,10 @@ This Python application provides a dynamic and interactive visualization of the 
 - **Real-time Feedback**: Instantaneous updates in the plot as parameters like quantum number and time are adjusted.
 - **Scientific Accuracy**: Utilizes accurate scientific constants and equations for realistic simulations.
 
+![plt](https://github.com/LoQiseaking69/QHO/blob/main/plots/Plt.PNG)
+
+![plot2]()
+
 ## System Requirements
 To run this tool, you'll need:
 - Python 3.x
