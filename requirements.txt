@@ -1,6 +1,4 @@
 numpy
 scipy
 wxpython
-dash
-plotly
-waitress
+matplotlib
