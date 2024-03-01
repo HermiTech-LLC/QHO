@@ -3,11 +3,8 @@ import wx.html2
 import numpy as np
 import logging
 from scipy.constants import hbar, pi
-import dash
-from dash import html, dcc
-import plotly.graph_objs as go
-from dash.dependencies import Output, Input
-from waitress import serve
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigureCanvas
 import threading
 import math
 
@@ -18,12 +15,10 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 DEFAULT_QUANTUM_NUMBER = 1
 DEFAULT_TIME_VALUE = 0
 SLIDER_SCALE_FACTOR = 50
-X_RANGE = (-10, 10)  # Extended range for higher quantum numbers
-X_POINTS = 5000      # Higher number of points for precision
-OMEGA = 1.0          # Angular frequency
-MASS = 1.0           # Mass
-DASH_HOST = '127.0.0.1'
-DASH_PORT = 8050
+X_RANGE = (-10, 10)
+X_POINTS = 5000
+OMEGA = 1.0
+MASS = 1.0
 
 class QuantumHarmonicOscillatorFrame(wx.Frame):
     def __init__(self, parent, title):
@@ -31,11 +26,10 @@ class QuantumHarmonicOscillatorFrame(wx.Frame):
         self.selected_n = DEFAULT_QUANTUM_NUMBER
         self.time_value = DEFAULT_TIME_VALUE
         self.init_ui()
-        self.init_dash_app()
-        threading.Thread(target=self.run_dash_app, daemon=True).start()
 
     def init_ui(self):
         self.panel = wx.Panel(self)
+
         self.comboBox = wx.ComboBox(self.panel, choices=[str(i) for i in range(10)], style=wx.CB_READONLY)
         self.comboBox.Bind(wx.EVT_COMBOBOX, self.on_select)
         self.comboBox.SetSelection(0)
@@ -45,8 +39,10 @@ class QuantumHarmonicOscillatorFrame(wx.Frame):
 
         self.infoText = wx.StaticText(self.panel, label="Quantum number n=0\nTime: 0.0")
 
-        self.browser = wx.html2.WebView.New(self.panel)
-        self.browser.LoadURL(f'http://{DASH_HOST}:{DASH_PORT}')
+        # Matplotlib figure
+        self.figure = plt.figure()
+        self.canvas = FigureCanvas(self.panel, -1, self.figure)
+        self.axes = self.figure.add_subplot(111)
 
         topSizer = wx.BoxSizer(wx.HORIZONTAL)
         topSizer.Add(self.comboBox, 1, wx.EXPAND | wx.ALL, 5)
@@ -54,20 +50,12 @@ class QuantumHarmonicOscillatorFrame(wx.Frame):
 
         mainSizer = wx.BoxSizer(wx.VERTICAL)
         mainSizer.Add(topSizer, 0, wx.EXPAND)
-        mainSizer.Add(self.browser, 1, wx.EXPAND | wx.ALL, 5)
+        mainSizer.Add(self.canvas, 1, wx.EXPAND | wx.ALL, 5)
         mainSizer.Add(self.infoText, 0, wx.ALL, 5)
 
         self.panel.SetSizer(mainSizer)
         self.Centre()
         self.Show(True)
-
-    def init_dash_app(self):
-        self.dash_app = dash.Dash(__name__)
-        self.dash_app.layout = html.Div([
-            dcc.Graph(id='live-graph', animate=False),
-            dcc.Interval(id='graph-update', interval=1000 * 1000, disabled=True)
-        ])
-        self.dash_app.callback(Output('live-graph', 'figure'), [Input('graph-update', 'n_intervals')])(self.update_graph)
 
     def on_select(self, event):
         self.selected_n = int(event.GetString())
@@ -84,20 +72,17 @@ class QuantumHarmonicOscillatorFrame(wx.Frame):
         real_part = np.real(psi)
         imag_part = np.imag(psi)
 
-        fig = go.Figure()
-        fig.add_trace(go.Scatter(x=x, y=prob_density, mode='lines', name='Probability Density'))
-        fig.add_trace(go.Scatter(x=x, y=real_part, mode='lines', name='Real Part'))
-        fig.add_trace(go.Scatter(x=x, y=imag_part, mode='lines', name='Imaginary Part'))
-
-        fig.update_layout(
-            title="Quantum Harmonic Oscillator",
-            xaxis_title="Position",
-            yaxis_title="Value",
-            margin=dict(l=40, r=40, t=40, b=40)
-        )
+        self.axes.clear()
+        self.axes.plot(x, real_part, label='Real Part', linewidth=2)
+        self.axes.plot(x, imag_part, label='Imaginary Part', linewidth=2)
+        self.axes.plot(x, prob_density, label='Probability Density', linewidth=2, linestyle='dashed')
+        self.axes.set_xlabel('Position')
+        self.axes.set_ylabel('Value')
+        self.axes.set_title("Quantum Harmonic Oscillator")
+        self.axes.legend()
+        self.canvas.draw()
 
         self.infoText.SetLabel(f"Quantum number n={self.selected_n}\nTime: {self.time_value:.2f}")
-        return fig
 
     def psi_n(self, x, n=0):
         coeff = (MASS * OMEGA / (pi * hbar)) ** 0.25
@@ -110,9 +95,6 @@ class QuantumHarmonicOscillatorFrame(wx.Frame):
 
     def psi(self, x, t, n=0):
         return self.psi_n(x, n) * self.time_dependent(n, t)
-
-    def run_dash_app(self):
-        serve(self.dash_app.server, host=DASH_HOST, port=DASH_PORT)
 
 if __name__ == '__main__':
     app = wx.App(False)
