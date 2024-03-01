@@ -13,7 +13,7 @@ This Python application provides a dynamic and interactive visualization of the 
 
 ![plt](https://github.com/LoQiseaking69/QHO/blob/main/plots/Plt.PNG)
 
-![plot2]()
+![plot2](https://github.com/LoQiseaking69/QHO/blob/main/plots/Plot2.PNG)
 
 ## System Requirements
 To run this tool, you'll need:
