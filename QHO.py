@@ -1,100 +1,123 @@
 import wx
-import wx.html2
 import numpy as np
-import logging
-from scipy.constants import hbar, pi
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigureCanvas
-import threading
+from scipy.constants import hbar, pi
 import math
 
-# Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-
 # Constants
-DEFAULT_QUANTUM_NUMBER = 1
-DEFAULT_TIME_VALUE = 0
-SLIDER_SCALE_FACTOR = 50
-X_RANGE = (-10, 10)
-X_POINTS = 5000
-OMEGA = 1.0
-MASS = 1.0
+MASS = OMEGA = HBAR = 1  # You can adjust these constants if needed
 
+# Function for the wave function
+def psi_n(x, n=0):
+    coeff = (MASS * OMEGA / (np.pi * HBAR)) ** 0.25
+    hermite_n = np.polynomial.hermite.hermval(
+        np.sqrt(MASS * OMEGA / HBAR) * x, [0] * n + [1]
+    )
+    normalization = np.sqrt(2 ** n * math.factorial(n))
+    return coeff / normalization * hermite_n * np.exp(-MASS * OMEGA * x ** 2 / (2 * HBAR))
+
+# Function for time-dependent part
+def time_dependent(n, t):
+    return np.exp(-1j * (n + 0.5) * OMEGA * t)
+
+# Function for the total wave function
+def psi(x, t, n=0):
+    return psi_n(x, n) * time_dependent(n, t)
+
+# Function for probability density
+def probability_density(x, t, n=0):
+    return np.abs(psi(x, t, n))**2
+
+# Quantum Harmonic Oscillator Frame Class
 class QuantumHarmonicOscillatorFrame(wx.Frame):
+    DEFAULT_QUANTUM_NUMBER = 0  # Ground state
+    TIME_SLIDER_SCALE = 100
+    X_RANGE = (-2, 2)
+    X_POINTS = 2000
+
     def __init__(self, parent, title):
         super().__init__(parent, title=title, size=(800, 600))
-        self.selected_n = DEFAULT_QUANTUM_NUMBER
-        self.time_value = DEFAULT_TIME_VALUE
+        self.selected_n = self.DEFAULT_QUANTUM_NUMBER
+        self.time_value = 0
         self.init_ui()
 
     def init_ui(self):
         self.panel = wx.Panel(self)
+        self.setup_controls()
+        self.setup_layout()
+        self.Centre()
+        self.Show(True)
+        self.update_graph()
 
-        self.comboBox = wx.ComboBox(self.panel, choices=[str(i) for i in range(10)], style=wx.CB_READONLY)
+    def setup_controls(self):
+        self.comboBox = wx.ComboBox(
+            self.panel, choices=[str(i) for i in range(5)], style=wx.CB_READONLY
+        )
         self.comboBox.Bind(wx.EVT_COMBOBOX, self.on_select)
-        self.comboBox.SetSelection(0)
+        self.comboBox.SetSelection(self.DEFAULT_QUANTUM_NUMBER)
 
-        self.speedSlider = wx.Slider(self.panel, value=50, minValue=1, maxValue=100, style=wx.SL_HORIZONTAL | wx.SL_LABELS)
-        self.speedSlider.Bind(wx.EVT_SLIDER, self.on_slider_scroll)
+        self.timeSlider = wx.Slider(
+            self.panel, value=0, minValue=0, maxValue=self.TIME_SLIDER_SCALE,
+            style=wx.SL_HORIZONTAL | wx.SL_LABELS
+        )
+        self.timeSlider.Bind(wx.EVT_SLIDER, self.on_slider_scroll)
 
-        self.infoText = wx.StaticText(self.panel, label="Quantum number n=0\nTime: 0.0")
-
-        # Matplotlib figure
         self.figure = plt.figure()
         self.canvas = FigureCanvas(self.panel, -1, self.figure)
         self.axes = self.figure.add_subplot(111)
 
-        topSizer = wx.BoxSizer(wx.HORIZONTAL)
-        topSizer.Add(self.comboBox, 1, wx.EXPAND | wx.ALL, 5)
-        topSizer.Add(self.speedSlider, 2, wx.EXPAND | wx.ALL, 5)
+        self.insightsPanel = wx.TextCtrl(
+            self.panel, style=wx.TE_MULTILINE | wx.TE_READONLY | wx.TE_WORDWRAP
+        )
+        self.insightsPanel.SetBackgroundColour(wx.Colour(255, 255, 255))
+
+    def setup_layout(self):
+        controlSizer = wx.BoxSizer(wx.HORIZONTAL)
+        controlSizer.Add(self.comboBox, 1, wx.EXPAND | wx.ALL, 5)
+        controlSizer.Add(self.timeSlider, 2, wx.EXPAND | wx.ALL, 5)
 
         mainSizer = wx.BoxSizer(wx.VERTICAL)
-        mainSizer.Add(topSizer, 0, wx.EXPAND)
+        mainSizer.Add(controlSizer, 0, wx.EXPAND)
         mainSizer.Add(self.canvas, 1, wx.EXPAND | wx.ALL, 5)
-        mainSizer.Add(self.infoText, 0, wx.ALL, 5)
 
         self.panel.SetSizer(mainSizer)
-        self.Centre()
-        self.Show(True)
 
     def on_select(self, event):
         self.selected_n = int(event.GetString())
         self.update_graph()
 
     def on_slider_scroll(self, event):
-        self.time_value = self.speedSlider.GetValue() / SLIDER_SCALE_FACTOR
+        self.time_value = event.GetInt() / self.TIME_SLIDER_SCALE
         self.update_graph()
 
-    def update_graph(self, n_intervals=None):
-        x = np.linspace(*X_RANGE, X_POINTS)
-        psi = self.psi(x, self.time_value, n=self.selected_n)
-        prob_density = np.abs(psi) ** 2
-        real_part = np.real(psi)
-        imag_part = np.imag(psi)
+    def update_graph(self):
+        x = np.linspace(*self.X_RANGE, self.X_POINTS)
+        wave_function = psi(x, self.time_value, n=self.selected_n)
+        real_part = np.real(wave_function)
+        imaginary_part = np.imag(wave_function)
+        prob_density = np.abs(wave_function) ** 2
 
         self.axes.clear()
         self.axes.plot(x, real_part, label='Real Part', linewidth=2)
-        self.axes.plot(x, imag_part, label='Imaginary Part', linewidth=2)
+        self.axes.plot(x, imaginary_part, label='Imaginary Part', linewidth=2)
         self.axes.plot(x, prob_density, label='Probability Density', linewidth=2, linestyle='dashed')
-        self.axes.set_xlabel('Position')
-        self.axes.set_ylabel('Value')
-        self.axes.set_title("Quantum Harmonic Oscillator")
+
+        # Include the wave function's mathematical expression
+        expression = (r'$\Psi(x,t) = \left(\frac{m\omega}{\pi \hbar}\right)^{1/4} \times$'
+                      r'$H_n(\sqrt{\frac{m\omega}{\hbar}}x) \times$'
+                      r'$e^{-\frac{m\omega x^2}{2\hbar}} \times e^{-i\omega t(n+\frac{1}{2})}$')
+        self.axes.text(0.05, 0.95, expression, fontsize=10, color='blue', transform=self.axes.transAxes,
+                       verticalalignment='top', bbox=dict(boxstyle='round,pad=0.5', fc='yellow', alpha=0.5))
+
+        self.axes.set_xlabel('Position (x)')
+        self.axes.set_ylabel('Wave Function / Probability Density')
+        self.axes.set_title('Quantum Harmonic Oscillator')
         self.axes.legend()
         self.canvas.draw()
 
-        self.infoText.SetLabel(f"Quantum number n={self.selected_n}\nTime: {self.time_value:.2f}")
-
-    def psi_n(self, x, n=0):
-        coeff = (MASS * OMEGA / (pi * hbar)) ** 0.25
-        hermite_n = np.polynomial.hermite.hermval(np.sqrt(MASS * OMEGA / hbar) * x, [0] * n + [1])
-        normalization = np.sqrt(2 ** n * math.factorial(n))
-        return coeff / normalization * hermite_n * np.exp(-MASS * OMEGA * x ** 2 / (2 * hbar))
-
-    def time_dependent(self, n, t):
-        return np.exp(-1j * (n + 0.5) * OMEGA * t)
-
-    def psi(self, x, t, n=0):
-        return self.psi_n(x, n) * self.time_dependent(n, t)
+        # Update insights panel with the wave function's expression
+        self.insightsPanel.SetValue(f"Wave function for n={self.selected_n}, t={self.time_value:.2f}:\n" + expression)
 
 if __name__ == '__main__':
     app = wx.App(False)
