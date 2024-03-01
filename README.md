@@ -23,7 +23,7 @@ To run this tool, you'll need:
 Ensure Python 3.x is installed on your system. Then, install the necessary Python packages:
 
 ```bash
-pip install wxpython numpy matplotlib scipy
+pip install -r requirements.txt
 ```
 
 ## Running the Application
